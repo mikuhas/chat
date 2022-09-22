@@ -1,5 +1,10 @@
 <template>
-  <Tutorial />
+  <div>
+    <MainFrame />
+    <!-- <Drawer /> -->
+    <!-- <MainChat /> -->
+    <!-- <Tutorial /> -->
+  </div>
 </template>
 
 <script lang="ts">
