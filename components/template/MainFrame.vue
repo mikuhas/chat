@@ -12,9 +12,7 @@ export default class MainChat extends Vue {
   @Prop({})
   rounded!: string;
 
-  mounted() {
-    console.log('aaa')
-  }
+  mounted() {}
 }
 </script>
 
@@ -23,7 +21,7 @@ export default class MainChat extends Vue {
   border: 2px solid black;
   border-radius: 10px;
   box-sizing: border-box;
-  width: 1500px;
+  width: 800px;
   height: 800px;
   overflow: hidden;
 }
