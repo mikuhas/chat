@@ -4,5 +4,6 @@ export type MessageList = {
     userId:string,
     userName:string,
     date:string
+    isDelete:boolean
     isEdit:boolean
 }

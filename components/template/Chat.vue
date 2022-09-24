@@ -10,14 +10,19 @@
         placeholder="ユーザー名"
       />
     </div>
-    <div class="c-chat_main" ref="main">
-      <Message
-        v-for="data in messages"
-        :key="data.messageId"
-        :message="data"
-        @edit-message="editMessage($event)"
-        :is-edit="isEdit && selectedMessageId === data.messageId"
-      />
+    <div class="c-chat_main">
+      <div class="c-chat_main_message" ref="main">
+        <Message
+          v-for="data in messages"
+          :key="data.messageId"
+          :message="data"
+          @edit-message="editMessage($event)"
+          @cancel-message="cancelMessage($event)"
+          @edit-cancel="editCancel()"
+          :is-edit="isEdit && selectedMessageId === data.messageId"
+          :is-delete="selectedMessageId === data.messageId"
+        />
+      </div>
     </div>
     <div class="c-chat_input">
       <div class="c-chat_input__text">
@@ -53,6 +58,7 @@ import {
   Timestamp,
   doc,
 } from 'firebase/firestore/lite'
+import { nextTick } from 'process'
 
 @Component
 export default class MainChat extends Vue {
@@ -85,21 +91,20 @@ export default class MainChat extends Vue {
   /*******************
    ** method
    ******************/
+
   async send(event: any) {
     if (this.isSendCommand(event) && this.sendMessage) {
-      console.log('送信')
       this.registData()
     }
   }
 
   async registData() {
     // TODOユーザーIDが同じ場合の条件分を追加
-    if (this.isEdit) {
-      const data = {
-        message: this.sendMessage,
-      }
+    if (this.isEdit && this.sendMessage != '') {
       const washingtonRef = doc(db, 'messages', this.selectedMessageId)
-      await updateDoc(washingtonRef, data).then(() => (this.sendMessage = ''))
+      await updateDoc(washingtonRef, { message: this.sendMessage }).then(
+        () => (this.sendMessage = '')
+      )
       this.isEdit = false
     } else {
       const data = {
@@ -107,6 +112,7 @@ export default class MainChat extends Vue {
         userId: this.userId,
         userName: this.userName,
         date: Timestamp.now(),
+        isDelete: false,
       }
       await addDoc(collection(db, 'messages'), data).then(
         () => (this.sendMessage = '')
@@ -125,6 +131,7 @@ export default class MainChat extends Vue {
         userId: doc.data().userId,
         userName: doc.data().userName,
         date: doc.data().date,
+        isDelete: doc.data().isDelete,
       }
     })
     this.messages = Object.assign(cityList)
@@ -133,18 +140,36 @@ export default class MainChat extends Vue {
       if (a.date > b.date) return 1
       return 0
     })
+    this.$nextTick(function () {
+      const target = this.$refs.main as HTMLElement
+      target.parentElement?.scrollTo(0, target.clientHeight)
+    })
   }
 
-    // メッセージ編集
+  // メッセージ編集
   editMessage(message: MessageList) {
     this.sendMessage = message.message
     this.selectedMessageId = message.messageId
     this.isEdit = true
   }
 
+  async cancelMessage(message: MessageList) {
+    this.selectedMessageId = message.messageId
+    const washingtonRef = doc(db, 'messages', this.selectedMessageId)
+    await updateDoc(washingtonRef, { isDelete: true })
+
+    this.getMessage()
+  }
+
   // 送信コマンドを入力
   isSendCommand(event: any): boolean {
     return event.ctrlKey && event.keyCode === 13
+  }
+
+  editCancel() {
+    this.isEdit = false
+    this.selectedMessageId = ''
+    this.sendMessage = ''
   }
 }
 </script>
@@ -181,11 +206,14 @@ export default class MainChat extends Vue {
     background: #fff;
     width: 100%;
     height: auto;
-    display: flex;
-    flex-direction: column;
     align-items: flex-start;
     &::-webkit-scrollbar {
       display: none;
+    }
+    &_message {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
     }
   }
   &_input {

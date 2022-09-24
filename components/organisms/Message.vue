@@ -1,5 +1,5 @@
 <template>
-  <article class="c-chat_main__message" :class="{ 'edit-mode': isEdit }">
+  <article class="message-item" :class="{ 'edit-mode': isEdit }">
     <div class="row-flex">
       <p class="user">
         {{ message.userName }}
@@ -8,19 +8,35 @@
         {{ formatDate(message.date) }}
       </p>
     </div>
-    <p class="message" v-html="formatMessage(message.message)"></p>
-
+    <p
+      v-if="!message.isDelete"
+      class="message"
+      v-html="formatMessage(message.message)"
+    ></p>
+    <p v-else>
+      <CancelMessage />
+    </p>
     <div class="edit">
-      <div class="edit_button" ref="edit" @click="openMenu">
+      <div
+        class="edit_button"
+        ref="edit"
+        @click="openMenu"
+        v-show="!isEdit"
+        v-if="!message.isDelete"
+      >
         <i class="edit_button_icon fa-solid fa-ellipsis-vertical"></i>
       </div>
-      <div class="edit_cancel" v-show="isEdit">キャンセル</div>
+      <div class="edit_cancel" v-show="isEdit" @click="editCancel">
+        キャンセル
+      </div>
     </div>
 
     <div ref="toolTip" class="menu" v-show="isShowToolTip">
       <ul class="menu_list">
         <li class="toolTip menu_list__item" @click="editMessage">編集する</li>
-        <li class="toolTip menu_list__item" @click="cancelMessage">送信取消</li>
+        <li class="toolTip menu_list__item danger" @click="cancelMessage">
+          送信取消
+        </li>
       </ul>
     </div>
   </article>
@@ -31,6 +47,7 @@ import { Timestamp } from 'firebase/firestore/lite'
 import { Component, Prop, Vue } from 'vue-property-decorator'
 import { createPopper } from '@popperjs/core'
 import { MessageList } from '~/type/view/chat/message'
+import dayjs from 'dayjs'
 
 @Component
 export default class Message extends Vue {
@@ -43,6 +60,9 @@ export default class Message extends Vue {
   @Prop({ default: false })
   isEdit!: boolean
 
+  @Prop({ default: false })
+  isDelete!: boolean
+
   /*******************
    ** data
    ******************/
@@ -52,14 +72,15 @@ export default class Message extends Vue {
    ** method
    ******************/
   formatDate(timestamp: Timestamp) {
-    if (!timestamp) return '00:00:00'
-    return new Date(timestamp.seconds * 1000)
+    if (!timestamp) return '00:00'
+    return dayjs(timestamp.toDate()).format('HH:mm')
   }
 
   formatMessage(message: string) {
     return message.replace(/\n/g, '<br />')
   }
 
+  // メニューを開く
   openMenu() {
     if (this.isShowToolTip === false) {
       this.isShowToolTip = true
@@ -92,13 +113,17 @@ export default class Message extends Vue {
     this.$emit('cancel-message', this.message)
     this.isShowToolTip = false
   }
+
+  editCancel() {
+    this.$emit('edit-cancel')
+  }
 }
 </script>
 
 <style lang="scss" scoped>
 @import url(http://fonts.googleapis.com/earlyaccess/notosansjp.css);
 
-.c-chat_main__message {
+.message-item {
   width: 100%;
   box-sizing: border-box;
   padding: 20px 20px 40px 20px;
@@ -137,6 +162,16 @@ export default class Message extends Vue {
     position: absolute;
     bottom: 10px;
     right: 40px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 5px 10px;
+    background: #fff;
+    box-shadow: 1px 1px 2px 1px #bbb;
+    user-select: none;
+    &:hover {
+      cursor: pointer;
+    }
   }
 }
 
@@ -157,12 +192,13 @@ export default class Message extends Vue {
     transition: 0.2s;
     &__item {
       list-style: none;
-      padding: 10px;
+      margin: 0;
+      padding: 10px 20px;
       user-select: none;
-    }
-    &:hover {
-      cursor: pointer;
-      background: #dddddd;
+      &:hover {
+        cursor: pointer;
+        background: #dddddd;
+      }
     }
   }
 }
