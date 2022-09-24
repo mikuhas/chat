@@ -7,7 +7,7 @@ services:
       dockerfile: ./docker/app/Dockerfile
     env_file: .env
     ports:
-      - "3001:8080"
+      - '3001:8080'
     volumes:
       - ./src/:/go/src
     tty: true
@@ -32,5 +32,5 @@ services:
       - 9199:9199 # Cloud Storage
       - 4000:4000 # Emulator Suite UI
     working_dir: /opt/firebase
-    command: firebase emulators:start
+    command: firebase emulators:start --import data --export-on-exit
     tty: true

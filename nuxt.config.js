@@ -16,13 +16,13 @@ export default {
     ],
     link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
 
-    script: [
-      { src: 'https://kit.fontawesome.com/bbfaf42274.js' }
-    ],
+    script: [{ src: 'https://kit.fontawesome.com/bbfaf42274.js' }],
   },
 
   // Global CSS: https://go.nuxtjs.dev/config-css
-  css: [],
+  css: [
+    '~/assets/css/style.scss'
+  ],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [],
@@ -45,6 +45,7 @@ export default {
   modules: [
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
+    '@nuxtjs/dotenv',
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -62,5 +63,9 @@ export default {
     storageBucket: process.env.STORAGE_BUCKET,
     messagingSenderId: process.env.MESSAGING_SENDER_ID,
     appId: process.env.APP_ID,
-  }
+  },
+  env: {
+    // これを設定しないとNuxtでprocess.env.NODE_ENVを取得したときにデフォルトの値になってしまう
+    NODE_ENV: process.env.NODE_ENV,
+  },
 }

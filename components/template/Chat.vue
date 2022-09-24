@@ -11,22 +11,13 @@
       />
     </div>
     <div class="c-chat_main" ref="main">
-      <div
-        class="c-chat_main__message"
+      <Message
         v-for="data in messages"
         :key="data.messageId"
-      >
-        <div class="row-flex">
-          <p class="user">
-            {{ data.userName }}
-          </p>
-          <p class="date">
-            {{ formatDate(data.date) }}
-          </p>
-        </div>
-        <p class="message" v-html="formatMessage(data.message)"></p>
-        <i class="fa-solid fa-ellipsis-vertical edit-icon"></i>
-      </div>
+        :message="data"
+        @edit-message="editMessage($event)"
+        :is-edit="isEdit && selectedMessageId === data.messageId"
+      />
     </div>
     <div class="c-chat_input">
       <div class="c-chat_input__text">
@@ -50,42 +41,30 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Watch } from 'vue-property-decorator'
+import { Component, Vue } from 'vue-property-decorator'
 import { MessageList } from '~/type/view/chat/message'
 
-import { initializeApp } from 'firebase/app'
+import { db } from '~/libs/firestore'
 import {
-  getFirestore,
   collection,
   getDocs,
-  doc,
   addDoc,
+  updateDoc,
   Timestamp,
-  connectFirestoreEmulator,
+  doc,
 } from 'firebase/firestore/lite'
 
 @Component
 export default class MainChat extends Vue {
   sendMessage = ''
-
   userName = 'anonymous'
-
-  firebaseConfig = {
-    apiKey: this.$config.apiKey,
-    authDomain: this.$config.authDomain,
-    projectId: this.$config.projectId,
-    storageBucket: this.$config.storageBucket,
-    messagingSenderId: this.$config.messagingSenderId,
-    appId: this.$config.appId,
-  }
-
-  // Initialize Firebase
-  app = initializeApp(this.firebaseConfig)
-  db = getFirestore(this.app)
-  // db = getFirestore()
-
   messages: MessageList[] = []
+  isEdit = false
+  selectedMessageId = ''
 
+  /*******************
+   ** computed
+   ******************/
   get messageBoxHeight() {
     return (
       (this.sendMessage?.split('\n').length * 24).toString() + 'px' || '24px'
@@ -96,44 +75,49 @@ export default class MainChat extends Vue {
     return '001'
   }
 
+  /*******************
+   ** lifecycle
+   ******************/
   mounted() {
-    // connectFirestoreEmulator(this.db, 'localhost', 4000)
-    // this.getMessage()
+    this.getMessage()
   }
 
-  formatDate(timestamp: Timestamp) {
-    if (!timestamp) return '00:00:00'
-    return new Date(timestamp.seconds * 1000)
-  }
-
-  formatMessage(message: string) {
-    return message.replace(/\n/g, '<br />')
-  }
-
+  /*******************
+   ** method
+   ******************/
   async send(event: any) {
-    if (event.ctrlKey && event.keyCode === 13) {
+    if (this.isSendCommand(event) && this.sendMessage) {
       console.log('送信')
       this.registData()
     }
   }
 
   async registData() {
-    const data = {
-      message: this.sendMessage,
-      userId: this.userId,
-      userName: this.userName,
-      date: Timestamp.now(),
+    // TODOユーザーIDが同じ場合の条件分を追加
+    if (this.isEdit) {
+      const data = {
+        message: this.sendMessage,
+      }
+      const washingtonRef = doc(db, 'messages', this.selectedMessageId)
+      await updateDoc(washingtonRef, data).then(() => (this.sendMessage = ''))
+      this.isEdit = false
+    } else {
+      const data = {
+        message: this.sendMessage,
+        userId: this.userId,
+        userName: this.userName,
+        date: Timestamp.now(),
+      }
+      await addDoc(collection(db, 'messages'), data).then(
+        () => (this.sendMessage = '')
+      )
     }
-    await addDoc(collection(this.db, 'messages'), data).then(
-      () => (this.sendMessage = '')
-    )
     this.getMessage()
   }
 
   async getMessage() {
-    const citiesCol = collection(this.db, 'messages')
+    const citiesCol = collection(db, 'messages')
     const citySnapshot = await getDocs(citiesCol)
-    console.log(citySnapshot)
     const cityList = citySnapshot.docs.map((doc) => {
       return {
         messageId: doc.id,
@@ -149,6 +133,18 @@ export default class MainChat extends Vue {
       if (a.date > b.date) return 1
       return 0
     })
+  }
+
+    // メッセージ編集
+  editMessage(message: MessageList) {
+    this.sendMessage = message.message
+    this.selectedMessageId = message.messageId
+    this.isEdit = true
+  }
+
+  // 送信コマンドを入力
+  isSendCommand(event: any): boolean {
+    return event.ctrlKey && event.keyCode === 13
   }
 }
 </script>
@@ -190,25 +186,6 @@ export default class MainChat extends Vue {
     align-items: flex-start;
     &::-webkit-scrollbar {
       display: none;
-    }
-    &__message {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 20px;
-      position: relative;
-      .user {
-        font-weight: 800;
-        font-size: 14px; // TODO
-      }
-      .date {
-        font-weight: 300;
-        font-size: 12px;
-      }
-      .edit-icon {
-        position: absolute;
-        right: 20px;
-        top: 20px;
-      }
     }
   }
   &_input {
@@ -260,40 +237,6 @@ export default class MainChat extends Vue {
         cursor: pointer;
       }
     }
-  }
-
-  // global クラスに置き換え
-
-  p,
-  input,
-  textarea {
-    font-family: 'Noto Sans JP', sans-serif;
-    color: #3b2d3b;
-  }
-
-  .g-input {
-    border: none;
-    outline: none;
-    display: block;
-  }
-
-  .message {
-    border-radius: 20px;
-    display: inline-flex;
-  }
-
-  .row-flex {
-    display: flex;
-    align-items: flex-end;
-  }
-
-  p {
-    margin: 0 5px;
-    letter-spacing: 0.6px;
-  }
-
-  textarea::-webkit-scrollbar {
-    display: none;
   }
 }
 </style>

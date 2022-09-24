@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "nuxt --port 3000",
+    "local": "cross-env NODE_ENV=local nuxt --port 3000",
+    "dev": "cross-env NODE_ENV=dev nuxt --port 3000",
     "build": "nuxt build",
     "start": "nuxt start",
     "generate": "nuxt generate",
@@ -15,6 +16,8 @@
     "@nuxtjs/axios": "^5.13.6",
     "@nuxtjs/dotenv": "^1.4.1",
     "@nuxtjs/firebase": "^8.2.2",
+    "@popperjs/core": "^2.11.6",
+    "@types/node": "^18.7.18",
     "core-js": "^3.19.3",
     "firebase": "^9.10.0",
     "firebase-admin": "^11.0.1",
@@ -30,9 +33,10 @@
   "devDependencies": {
     "@nuxt/types": "^2.15.8",
     "@nuxt/typescript-build": "^2.1.0",
+    "cross-env": "^7.0.3",
     "eslint-config-prettier": "^8.3.0",
-    "node-sass": "^6.0.1",
     "prettier": "^2.5.1",
-    "sass-loader": "^10.2.0"
+    "sass": "^1.55.0",
+    "sass-loader": "^10.3.1"
   }
 }

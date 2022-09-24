@@ -1,0 +1,27 @@
+/** HTML style overide **/
+p,
+input,
+textarea {
+    font-family: "Noto Sans JP", sans-serif;
+    color: #3b2d3b;
+}
+p,
+li {
+    margin: 0 5px;
+    letter-spacing: 0.6px;
+}
+textarea::-webkit-scrollbar {
+    display: none;
+}
+
+/** utils style **/
+.row-flex {
+    display: flex;
+    align-items: flex-end;
+}
+
+.g-input {
+    border: none;
+    outline: none;
+    display: block;
+}
