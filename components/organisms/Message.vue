@@ -89,15 +89,12 @@ export default class Message extends Vue {
 
       createPopper(popcorn, tooltip, {
         placement: 'left',
-        modifiers: [
-          {
+        modifiers: [{
             name: 'offset',
-
             options: {
               offset: [0, 20],
             },
-          },
-        ],
+          }],
       })
     } else this.isShowToolTip = false
   }

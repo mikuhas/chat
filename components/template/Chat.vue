@@ -32,13 +32,13 @@
           class="g-input"
           placeholder="メッセージを入力"
           v-model="sendMessage"
-          @keydown="send"
+          @keydown="pressSendButton"
           :style="{
             height: messageBoxHeight,
           }"
         ></textarea>
       </div>
-      <div class="c-chat_input__send" @click="registData()">
+      <div class="c-chat_input__send" @click="registMessage()">
         <i class="fa-solid fa-paper-plane"></i>
       </div>
     </div>
@@ -48,20 +48,20 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
 import { MessageList } from '~/type/view/chat/message'
-
-import { db } from '~/libs/firestore'
 import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  Timestamp,
-  doc,
-} from 'firebase/firestore/lite'
-import { nextTick } from 'process'
+  requestAddMessage,
+  requestGetMessages,
+  requestUpdateMessage,
+} from '~/api/firebase/request'
+import { addMessageRequest } from '~/type/api/firebase/firebase'
+import { db } from '~/libs/firestore'
+import { updateDoc, Timestamp, doc } from 'firebase/firestore/lite'
 
 @Component
 export default class MainChat extends Vue {
+  /*******************
+   ** data
+   ******************/
   sendMessage = ''
   userName = 'anonymous'
   messages: MessageList[] = []
@@ -91,40 +91,53 @@ export default class MainChat extends Vue {
   /*******************
    ** method
    ******************/
-
-  async send(event: any) {
+  // 送信コマンド押下時処理
+  async pressSendButton(event: any) {
     if (this.isSendCommand(event) && this.sendMessage) {
-      this.registData()
+      this.registMessage()
     }
   }
 
-  async registData() {
+  // メッセージを登録
+  async registMessage() {
     // TODOユーザーIDが同じ場合の条件分を追加
     if (this.isEdit && this.sendMessage != '') {
-      const washingtonRef = doc(db, 'messages', this.selectedMessageId)
-      await updateDoc(washingtonRef, { message: this.sendMessage }).then(
-        () => (this.sendMessage = '')
-      )
-      this.isEdit = false
+      await this.updateMessage()
     } else {
-      const data = {
-        message: this.sendMessage,
-        userId: this.userId,
-        userName: this.userName,
-        date: Timestamp.now(),
-        isDelete: false,
-      }
-      await addDoc(collection(db, 'messages'), data).then(
-        () => (this.sendMessage = '')
-      )
+      await this.addMessage()
     }
     this.getMessage()
   }
 
+  // メッセージを追加
+  async addMessage() {
+    const data = {
+      message: this.sendMessage,
+      userId: this.userId,
+      userName: this.userName,
+      date: Timestamp.now(),
+      isDelete: false,
+    } as addMessageRequest
+
+    await requestAddMessage(data).then(() => {
+      this.sendMessage = ''
+    })
+  }
+
+  // メッセージを更新
+  async updateMessage() {
+    await requestUpdateMessage(this.selectedMessageId, this.sendMessage).then(
+      () => {
+        this.sendMessage = ''
+        this.isEdit = false
+      }
+    )
+  }
+
+  // メッセージ一覧を取得
   async getMessage() {
-    const citiesCol = collection(db, 'messages')
-    const citySnapshot = await getDocs(citiesCol)
-    const cityList = citySnapshot.docs.map((doc) => {
+    const response = await requestGetMessages('messages')
+    const messageList = response.docs.map((doc) => {
       return {
         messageId: doc.id,
         message: doc.data().message,
@@ -134,7 +147,7 @@ export default class MainChat extends Vue {
         isDelete: doc.data().isDelete,
       }
     })
-    this.messages = Object.assign(cityList)
+    this.messages = Object.assign(messageList)
     this.messages.sort((a, b) => {
       if (a.date < b.date) return -1
       if (a.date > b.date) return 1
@@ -146,13 +159,14 @@ export default class MainChat extends Vue {
     })
   }
 
-  // メッセージ編集
+  // 選択対象メッセージを編集
   editMessage(message: MessageList) {
     this.sendMessage = message.message
     this.selectedMessageId = message.messageId
     this.isEdit = true
   }
 
+  // 送信取消
   async cancelMessage(message: MessageList) {
     this.selectedMessageId = message.messageId
     const washingtonRef = doc(db, 'messages', this.selectedMessageId)
@@ -161,15 +175,16 @@ export default class MainChat extends Vue {
     this.getMessage()
   }
 
-  // 送信コマンドを入力
-  isSendCommand(event: any): boolean {
-    return event.ctrlKey && event.keyCode === 13
-  }
-
+  // メッセージ編集をキャンセル
   editCancel() {
     this.isEdit = false
     this.selectedMessageId = ''
     this.sendMessage = ''
+  }
+
+  // 送信コマンドを入力
+  isSendCommand(event: any): boolean {
+    return event.ctrlKey && event.keyCode === 13
   }
 }
 </script>
@@ -207,6 +222,7 @@ export default class MainChat extends Vue {
     width: 100%;
     height: auto;
     align-items: flex-start;
+    transition: 0.5s;
     &::-webkit-scrollbar {
       display: none;
     }

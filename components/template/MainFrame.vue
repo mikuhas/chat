@@ -21,7 +21,8 @@ export default class MainChat extends Vue {
   border: 2px solid black;
   border-radius: 10px;
   box-sizing: border-box;
-  width: 800px;
+  min-width: 400px;
+  width: 100%;
   height: 800px;
   overflow: hidden;
 }
